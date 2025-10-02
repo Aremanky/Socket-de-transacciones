@@ -1,4 +1,3 @@
-[LOGIN] prueba desde ('127.0.0.1', 59483)
-[LOGOUT] prueba desde ('127.0.0.1', 59483)
-[LOGIN] pepe desde ('127.0.0.1', 59483)
-[LOGOUT] pepe (desconexión inesperada) desde ('127.0.0.1', 59483)
+[2025-10-02 12:00:43][LOGIN] pplu desde ('127.0.0.1', 63970)
+[2025-10-02 12:01:33][LOGOUT] pplu desde ('127.0.0.1', 63970)
+[2025-10-02 12:02:34][LOGOUT] None (desconexión inesperada) desde ('127.0.0.1', 63970)

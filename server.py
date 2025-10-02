@@ -4,6 +4,7 @@ import json
 from user_manager import UserManager
 import os
 import secure_utils
+from datetime import datetime
 
 SESSIONS_LOG = "sessions.log"
 TRANSACTIONS_LOG = "transactions.log"
@@ -21,16 +22,19 @@ if os.path.exists(TRANSACTIONS_LOG):
     os.remove(TRANSACTIONS_LOG)
 
 def log_session_event(evento: str):
+    ahora = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
     with open(SESSIONS_LOG, "a") as f:
-        f.write(evento + "\n")
+        f.write(ahora + evento + "\n")
 
 def log_transaction(transaccion: str):
+    ahora = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
     with open(TRANSACTIONS_LOG, "a") as f:
-        f.write(transaccion + "\n")
+        f.write(ahora + transaccion + "\n")
 
 def log_error(error: str):
+    ahora = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
     with open(ERROR_LOG, "a") as f:
-        f.write(error + "\n")
+        f.write(ahora + error + "\n")
 
 def handle_client(conn, addr):
     print(f"[+] Cliente con ip {addr} se ha conectado")
@@ -111,7 +115,7 @@ def handle_client(conn, addr):
                                     resp = {"status": "OK", "mensaje": "Sesión cerrada"}
                                 else:
                                     resp = {"status": "ERROR", "mensaje": "No estabas logado"}
-                                    log_error(f"[ERROR] intento de desloggeo son estar logeado")
+                                    log_error(f"[ERROR] intento de desloggeo sin estar logeado")
 
                             conn.sendall((json.dumps(resp) + "\n").encode())
 
@@ -124,7 +128,8 @@ def handle_client(conn, addr):
         log_error(f"[FATAL ERROR] Ha sudecido un error con {addr}: {e}")
     finally:
         usuario = sesiones.pop(addr, None)
-        log_session_event(f"[LOGOUT] {usuario} (desconexión inesperada) desde {addr}") 
+        if usuario:
+            log_session_event(f"[LOGOUT] {usuario} (desconexión inesperada) desde {addr}") 
         print(f"[-] Cliente con ip {addr} se ha desconectado")
 
 def main():

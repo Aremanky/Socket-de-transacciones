@@ -15,7 +15,6 @@ def main():
 
         while True:
             accion = input("Acción (1.register/2.login/3.transaccion/4.logout/5.salir): ")
-            print(accion)
             if accion == "5":
                 print("[Cliente] Cerrando conexión...")
                 break
