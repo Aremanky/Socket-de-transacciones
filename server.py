@@ -7,6 +7,7 @@ import secure_utils
 
 SESSIONS_LOG = "sessions.log"
 TRANSACTIONS_LOG = "transactions.log"
+ERROR_LOG = "error.log"
 
 user_manager = UserManager()
 sesiones = {}
@@ -26,6 +27,10 @@ def log_session_event(evento: str):
 def log_transaction(transaccion: str):
     with open(TRANSACTIONS_LOG, "a") as f:
         f.write(transaccion + "\n")
+
+def log_error(error: str):
+    with open(ERROR_LOG, "a") as f:
+        f.write(error + "\n")
 
 def handle_client(conn, addr):
     print(f"[+] Cliente con ip {addr} se ha conectado")
@@ -52,6 +57,11 @@ def handle_client(conn, addr):
                             if accion == "register":
                                 ok, msg = user_manager.register_user(obj["username"], obj["password"])
                                 resp = {"status": "OK" if ok else "ERROR", "mensaje": msg}
+                                if ok:
+                                    resp = {"status": "OK", "mensaje":msg}
+                                else:
+                                    resp = {"status":"ERROR", "mensaje":msg}
+                                    log_error(f"[ERROR] por parte de {addr}: {msg}")
 
                             elif accion == "login":
                                 ok, msg = user_manager.verify_credenciales(obj["username"], obj["password"])
@@ -64,6 +74,7 @@ def handle_client(conn, addr):
                             elif accion == "pet_transaccion":
                                 if addr not in sesiones:
                                     resp = {"status": "ERROR", "mensaje": "Debes iniciar sesión primero"}
+                                    log_error(f"[ERROR] por parte de {addr}: No ha iniciado sesion antes de transacción")
                                 else:
                                     usuario = sesiones[addr] #Sacamos el usuario para guardar su nonce temporal
                                     nonce = secure_utils.genera_nonce() #Le generamos un nonce
@@ -81,9 +92,11 @@ def handle_client(conn, addr):
                                 #Verificar ataque de replay
                                 if not usuario in dic_nonce:
                                     resp = {"status": "POSIBLE ATAQUE", "mensaje":"Posible ataque de replay, debe avisar al usuario {usuario}"}
+                                    log_error(f"[POSIBLE ATAQUE] al usuario {usuario} por parte de {addr}: Posible ataque de replay, debe avisar al usuario")
                                 #Verificar ataque de Man-in-the-middle (evitar cambios)
                                 elif not secure_utils.verifica_hmac(mac,key,transaccion,nonce):
-                                    resp = {"status": "POSIBLE ATAQUE", "mensaje":"Posible ataque de Man-in-the-middle, deve avisar al usuario {usuario}"}
+                                    resp = {"status": "POSIBLE ATAQUE", "mensaje":"Posible ataque de Man-in-the-middle, debe avisar al usuario {usuario}"}
+                                    log_error(f"[POSIBLE ATAQUE] al usuario {usuario} por parte de {addr}: Posible ataque de man-in-the-middle, debe avisar al usuario")
                                 else:
                                     dic_nonce.pop(usuario)
                                     transacciones.append({"usuario": usuario, "transaccion": transaccion})
@@ -98,14 +111,17 @@ def handle_client(conn, addr):
                                     resp = {"status": "OK", "mensaje": "Sesión cerrada"}
                                 else:
                                     resp = {"status": "ERROR", "mensaje": "No estabas logado"}
+                                    log_error(f"[ERROR] intento de desloggeo son estar logeado")
 
                             conn.sendall((json.dumps(resp) + "\n").encode())
 
                         except Exception as e2:
                             print(f"[!] Ha sucedido un error JSON con {addr}: {e2}")
+                            log_error(f"[FATAL ERROR] Ha sudecido un error JSON con {addr}: {e2}")
 
     except Exception as e:
-        print(f"[!] Ha sucedido un error con  {addr}: {e}")
+        print(f"[!] Ha sucedido un error con {addr}: {e}")
+        log_error(f"[FATAL ERROR] Ha sudecido un error con {addr}: {e}")
     finally:
         usuario = sesiones.pop(addr, None)
         log_session_event(f"[LOGOUT] {usuario} (desconexión inesperada) desde {addr}") 
