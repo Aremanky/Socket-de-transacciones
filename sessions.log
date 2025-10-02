@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 [LOGIN] Elena desde ('127.0.0.1', 61984)
 [LOGOUT] Elena desde ('127.0.0.1', 61984)
 [LOGIN] Niko desde ('127.0.0.1', 52831)
@@ -18,3 +19,7 @@
 [LOGIN] pepe desde ('127.0.0.1', 57448)
 [LOGOUT] pepe desde ('127.0.0.1', 57448)
 [LOGOUT] None (desconexión inesperada) desde ('127.0.0.1', 57448)
+=======
+[LOGIN] Elena desde ('127.0.0.1', 61984)
+[LOGOUT] Elena desde ('127.0.0.1', 61984)
+>>>>>>> 06d5919d25863ec01404f7f35fd3a6b0f5edde17
