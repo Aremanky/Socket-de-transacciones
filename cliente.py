@@ -2,7 +2,7 @@ import socket
 import json
 import secure_utils
 import hashlib
-
+import getpass
 HOST = '127.0.0.1' #Dirección del servidor
 PORT = 11002 #puerto del servidor
 
@@ -32,13 +32,13 @@ def main():
             #Registro del usuario
             if accion == "1":
                 username = input("Nuevo usuario: ") #Pedimos el usuario
-                password = input("Contraseña: ") #Pedimos la contraseña
+                password = getpass.getpass("Contraseña: ") #input("Contraseña: ") #Pedimos la contraseña
                 msg = {"accion": "register", "username": username, "password": password} 
 
             #Login del usuario
             elif accion == "2":
                 username = input("Usuario: ") #Pedimos el usuario
-                password = input("Contraseña: ") #Pedimos la contraseña
+                password = getpass.getpass("Contraseña: ") #Pedimos la contraseña
                 passwd = [] #Limpiamos la lista por si acaso (Por dios que vergüenza)
                 passwd.append(password) #Guardamos la contraseña en la lista para usarla luego en el cálculo del hmac
                 msg = {"accion": "login", "username": username, "password": password}

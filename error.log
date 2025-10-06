@@ -1,1 +1,6 @@
 [2025-10-02 12:02:02][ERROR] intento de desloggeo sin estar logeado
+[2025-10-03 11:19:38][ERROR] por parte de ('127.0.0.1', 59379): El usuario ya existe
+[2025-10-04 00:23:39][ERROR] por parte de cliente1 desde ('127.0.0.1', 57852), usuario ya bloqueado
+[2025-10-06 12:49:12][ERROR] por parte de ultima prueba desde ('127.0.0.1', 56572), usuario ya bloqueado
+[2025-10-06 12:49:29][ERROR] por parte de ('127.0.0.1', 56572): No ha iniciado sesion antes de transacción
+[2025-10-06 12:49:29][ERROR] por parte de ('127.0.0.1', 56572): No ha iniciado sesion antes de transacción

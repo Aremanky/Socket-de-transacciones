@@ -4,6 +4,7 @@ import json
 from user_manager import UserManager
 import os
 import secure_utils
+import time
 from datetime import datetime
 
 #Archivos donde guardamos los logs (registrar las acciones del usuario)
@@ -17,10 +18,12 @@ user_manager = UserManager()
 #Memorias que vamos a usar
 sesiones = {} #addr como clave y usuario como valor. Ejemplo:{(127.0.0.1,63923): "usuario1"}
 dic_nonce = {} #diccionario que genera nonce por transacción
-
+login_attempts = {} # Almacenamiento de intentos de login
+users_bloq = {} # Almacenamiento de usuarios bloqueados
 HOST = '0.0.0.0' # Interfaz por la que escucha el servidor (0.0.0.0 indica que en todas)
 PORT = 11002 # Puerto por el que escucha
-
+intentos = 3 # número de intentos es simpre el mismo 
+file_bloc = "./bloqueados.json"
 #hacemos volatil la memeoria de transacciones
 if os.path.exists(TRANSACTIONS_LOG):
     os.remove(TRANSACTIONS_LOG)
@@ -40,6 +43,53 @@ def log_error(error: str):
     ahora = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]") # Formato de fecha y hora
     with open(ERROR_LOG, "a") as f: 
         f.write(ahora + error + "\n") # Escribimos en el log la hora y el error
+def almacena_bloqueado():
+    try:
+        if os.path.exists(file_bloc):
+            # abrimos el archivo para escribir
+                with open(file_bloc,'w') as f :
+                    # vertemos el contenoido en formato json en el archivo a escribir 
+                    json.dump(users_bloq, f, indent=2)
+    except Exception as e :
+        # mensaje de error por fallo
+        print(f'Error cargando usuarios bloqueados!!! {e}')
+
+def comprobar_bloqueado(user,):
+    desbloqueada = False
+    print(os.path.exists(file_bloc))
+    try:
+        if os.path.exists(file_bloc):
+            # abrimos el archivo para escribir
+                with open(file_bloc,'r') as f :
+                    #print("Aquí")
+                    file_js = json.load(f)
+                    #print(file_js)
+                    if user not in file_js:
+                        # si el usuario no está en bloqueos desbloqueo
+                        desbloqueada = True
+                    else:
+                        # comrprobación de si se ha pasado el tiempo de bloqueo
+                        ti = file_js[user]
+                        tf = time.time()
+                        t = tf - ti
+                        if t >= 7200 :
+                            # usuario desbloqueado
+                            desbloqueada = True
+                            # eliminamos el usuario bloqueado
+                            del file_js[user]
+                            try:
+                                with open(file_bloc,'w') as f :
+                                    json.dump(file_js, f, indent=2)
+                            except Exception as e :
+                                # mensaje de error por fallo
+                                print(f'Error al eliminar usuarios bloqueados!!! {e}')
+
+        return desbloqueada
+    except Exception as e :
+        # mensaje de error por fallo
+        print(f'Error cargando usuarios bloqueados!!! {e}')
+        return desbloqueada
+
 
 # ---Manejo de clientes---
 def handle_client(conn, addr): 
@@ -72,7 +122,6 @@ def handle_client(conn, addr):
                             # ---Registro de usuario---
                             if accion == "register":
                                 ok, msg = user_manager.register_user(obj["username"], obj["password"]) #Registrar usuario
-                                resp = {"status": "OK" if ok else "ERROR", "mensaje": msg}
                                 if ok:
                                     resp = {"status": "OK", "mensaje":msg}
                                 else:
@@ -81,11 +130,57 @@ def handle_client(conn, addr):
 
                             # ---Login del usuario---
                             elif accion == "login":
-                                ok, msg = user_manager.verify_credenciales(obj["username"], obj["password"]) #Verificar si usuario y contraseña son correctos
-                                if ok:
-                                    sesiones[addr] = obj["username"]
-                                    log_session_event(f"[LOGIN] {obj['username']} desde {addr}")
-                                resp = {"status": "OK" if ok else "ERROR", "mensaje": msg}
+                                # ver que el usuario no está bloqueado
+                                
+                                if not comprobar_bloqueado(obj["username"]): 
+
+                                    resp = {"status": "ERROR", "mensaje": "Usuario bloqueado"}
+                                # en caso contario
+                                else:
+                                    # ver que el usuario no se ha logeado ya
+                                    if addr not in sesiones: 
+                                        if obj["username"] not in login_attempts: # si el usuario no lo ha intentado antes 
+                                            login_attempts[obj["username"]] = 0 # establecemos el contador de intentos para el usuario a 0
+                                            # Log de error 
+                                            log_error(f"[ERROR] por parte de {obj['username']} desde {addr}, usuario ya bloqueado")
+                                        # establecemos un número de intentos maximo
+                                        
+                                        # verificamos las credenciales
+                                        ok, msg = user_manager.verify_credenciales(obj["username"], obj["password"]) #Verificar si usuario y contraseña son correctos
+                                        if ok:
+                                                # loggin ecitoso asociamos al addres al username
+                                                sesiones[addr] = obj["username"]
+                                                login_attempts[addr] = 0 # Contador a 0
+                                                #lo añadimos al log de sesion
+                                                log_session_event(f"[LOGIN SUCCESS] {obj['username']} desde {addr}")
+                                                #La respuesta 
+                                                resp = {"status": "OK", "mensaje": msg}
+                                        else:
+                                                # incrementamos el contador porque ha fallado
+                                                print(login_attempts)
+                                                login_attempts[obj["username"]] += 1
+                                                # variables de intentos restantes para avisar
+                                                intentos_restantes = intentos - login_attempts[obj["username"]]
+                                                # si el numero de intentos es mayor 
+                                                if intentos_restantes == 0 :
+                                                    # Enviamos respuesta
+                                                    resp = {"status": "ERROR", "mensaje": "Demasiados intentos fallidos, la cuenta queda bloqueada temporalmente"}
+                                                    # Informamos en el log del bloqueo
+                                                    log_session_event(f"[Bloqueo] Demasiados intentos fallados desde {addr}")
+                                                    # Añadimos al log de errores
+                                                    log_error(f"[ERROR] por parte de {obj['username']} desde {addr}, la cuenta queda bloqueada temporalmente")
+                                                    # añadimos usuarios al blqueo temporal
+                                                    users_bloq[obj['username']] = time.time() 
+                                                    almacena_bloqueado()
+                                                else : 
+                                                    resp = {"status": "ERROR", "mensaje": f"{msg}, Le queda {intentos_restantes} intentos restantes, por favor intentelo de nuevo"}
+                                                    # Añadimmos al log de sesion
+                                                    log_session_event(f"[LOGIN FAIL] {obj['username']} desde {addr}, {intentos_restantes} intentos restantes")
+                                                    # Añadimos al log de errores
+                                                    log_error(f"[ERROR] por parte de {obj['username']} desde {addr}, fallo de login {msg}")
+                                    else:
+                                        resp = {"status": "ERROR", "mensaje": "Ya hay una sesión activa"}
+                                        log_error(f"[ERROR] por parte de {obj['username']} desde {addr}, fallo de login {msg}")       
                             
                             #solicitar petición de transacción para generar un nonce
                             elif accion == "pet_transaccion":
@@ -117,6 +212,7 @@ def handle_client(conn, addr):
                                     #Si el hmac no es correcto, es que el mensaje ha sido modificado por lo tanto es un posible ataque de Man-in-the-middle
                                     resp = {"status": "POSIBLE ATAQUE", "mensaje":"Posible ataque de Man-in-the-middle, debe avisar al usuario {usuario}"}
                                     log_error(f"[POSIBLE ATAQUE] al usuario {usuario} por parte de {addr}: Posible ataque de man-in-the-middle, debe avisar al usuario")
+                                    dic_nonce.pop(usuario, None)
                                 else:
                                     dic_nonce.pop(usuario) #Si todo es correcto, eliminamos el nonce para que no se pueda volver a usar
                                     log_transaction(f"[TRANSACCION] {usuario}: {transaccion}") #Guardamos la transacción en el log

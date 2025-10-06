@@ -14,7 +14,7 @@ class UserManager():
             self._create_default_user()
     # función que carga los usuarios desde un archivo JSON
     def _load_user(self):
-        # Aquí se carga los usuarios 
+        # Aquí se carga los usuarios
         # Para gestionar mejor los errores con try y catch
         try:
             if os.path.exists(self.users_file):
@@ -27,7 +27,7 @@ class UserManager():
             # devolvemos un diccionario vacio
             return {}
   # Esta función se ejecutará solo una vez para cargar usuarios al sistema
-  # y cumplir con el requisito "Una lista de usuarios pre-registrados Sin transacciones realizadas previamente"      
+  # y cumplir con el requisito "Una lista de usuarios pre-registrados Sin transacciones realizadas previamente"
     def _create_default_user(self):
         #creación del usuario por defecto
         # en un formato JSON
@@ -55,7 +55,7 @@ class UserManager():
         try:
             # abrimos el archivo para escribir
             with open(self.users_file,'w') as f :
-                    # vertemos el contenoido en formato json en el archivo a escribir 
+                    # vertemos el contenoido en formato json en el archivo a escribir
                     json.dump(self.users, f, indent=2)
             # devolvemos True porque se ha realizado la acción
             return True
@@ -67,7 +67,7 @@ class UserManager():
     # Esta función se pude llamar desde el servidor
     def register_user(self, username, password):
         # Función para registrar usuarios
-        # devuelve si se se ha completado exitosamente la acción 
+        # devuelve si se se ha completado exitosamente la acción
         # y un mensaje
 
         # comprobamos que este usuario que estamos creando no está ya registrado
@@ -78,9 +78,9 @@ class UserManager():
         if len(username) <3 or len(password) <4 :
             #print("No se cumple los requisitos para la contraseña")
             return False, "No se cumple los requisitos para la contraseña"
-        
-        # Una vez cumplido los requisitos preliminares 
-        # procedemos a crear al usuario y guardarli 
+
+        # Una vez cumplido los requisitos preliminares
+        # procedemos a crear al usuario y guardarli
         self.users[username] = self._hash_password(password) # guaradamos los datps correctamente en el diccionario
         # procedemos a guardar al usuario
         if self._save_users():
@@ -89,7 +89,7 @@ class UserManager():
         else:
             #print("Usuario no se ha podido guardar")
             return False, "Usuario no se ha podido guardar"
-        
+
     # Esta función es para verficar las credenciales del usuario
     # También puede ser llamado desde el servidor
 
@@ -104,12 +104,12 @@ class UserManager():
         if self.users[username] == hash_pswd:
             # la contraseña es correcta
             #print("Contraseña correcta")
-            return True, "Contraseña correcta"
+            return True, "password correcto"
         else:
             # contraseña incorrecta
             #print("Contraseña Incorrecta")
-            return False, "Contraseña Incorrecta"
-    
+            return False, "password incorrecto"
+
     #def user_exists(self, username):
     #    return username in self.users
     #def list_users(self):
@@ -128,8 +128,9 @@ class UserManager():
 
 if __name__ == "__main__":
     print("=== PRUEBA INDEPENDIENTE DE UsersManager ===\n")
-    
+
     # Crear instancia
-    manager = UserManager()
-    manager.register_user("nuevo_user", "nueva_pass123")
-    manager.verify_credenciales("admin", "admin123")
+   # esto se hizo para probar 
+   # manager = UserManager()
+   # manager.register_user("nuevo_user", "nueva_pass123")
+   # manager.verify_credenciales("admin", "admin123")
